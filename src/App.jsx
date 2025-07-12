@@ -54,6 +54,14 @@ const App = () => {
     }
   };
 
+  const jitterCoords = (coord, strength = 0.0005) => {
+    const jittered = {
+      lat: coord.lat + (Math.random() - 0.5) * strength,
+      lon: coord.lon + (Math.random() - 0.5) * strength,
+    };
+    return jittered;
+  };  
+
   useEffect(() => {
     fetch('/events_0.1.json')
       .then((res) => res.json())
@@ -63,7 +71,9 @@ const App = () => {
             const coordsList = event.coords || (event.locations?.map(loc => loc.coords).filter(Boolean) ?? []);
             const formattedDate = formatDate(event.date?.point_in_time);
 
-            return coordsList.map((coord) => ({
+            const jitteredCoords = coordsList.map(coord => jitterCoords(coord, 0.0015));
+            
+            return jitteredCoords.map((coord) => ({
               type: 'Feature',
               properties: {
                 title: event.label || event.title || 'Untitled',
@@ -192,10 +202,17 @@ const App = () => {
             } else {
               try {
                 const preview = await fetchWikipediaSummary(description);
+                // Limit to ~60 words
+                const trimmedExtract = preview.extract
+                  .split(/\s+/)
+                  .slice(0, 40)
+                  .join(' ')
+                  .trim() + (preview.extract.split(/\s+/).length > 60 ? '…' : '');
+
                 content += `
                   <p><strong>${preview.title}</strong></p>
-                  ${preview.thumbnail ? `<img src="${preview.thumbnail.source}" alt="${preview.title}" style="max-width:100%;height:auto;" />` : ''}
-                  <p>${preview.extract}</p>
+                  ${preview.thumbnail ? `<img src="${preview.thumbnail.source}" alt="${preview.title}" style="max-width:100%;height:auto; margin-bottom: 0.5em;" />` : ''}
+                  <p style="margin-bottom: 0.5em;">${trimmedExtract}</p>
                   <a href="${preview.content_urls.desktop.page}" target="_blank" rel="noopener noreferrer">Read more on Wikipedia</a>
                 `;
               } catch (err) {
@@ -273,6 +290,12 @@ const App = () => {
           map.current.getCanvas().style.cursor = 'pointer';
         });
         map.current.on('mouseleave', 'clusters', () => {
+          map.current.getCanvas().style.cursor = '';
+        });
+        map.current.on('mouseenter', 'unclustered-point', () => {
+          map.current.getCanvas().style.cursor = 'pointer';
+        });
+        map.current.on('mouseleave', 'unclustered-point', () => {
           map.current.getCanvas().style.cursor = '';
         });
       } catch (err) {
