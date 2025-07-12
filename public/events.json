@@ -1,0 +1,17 @@
+[
+    {
+      "title": "Battle of Waterloo",
+      "date": "1815-06-18",
+      "latitude": 50.6806,
+      "longitude": 4.4125,
+      "description": "Napoleon's final defeat near modern-day Belgium."
+    },
+    {
+      "title": "Fall of the Berlin Wall",
+      "date": "1989-11-09",
+      "latitude": 52.5163,
+      "longitude": 13.3777,
+      "description": "The Berlin Wall is opened, symbolizing the end of the Cold War."
+    }
+  ]
+  
