@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { inject } from '@vercel/analytics';
+
 
 const App = () => {
   const mapContainer = useRef(null);
@@ -221,6 +223,12 @@ const App = () => {
       map.current.on('load', addClusterLayers);
     }
   }, [geojsonData]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      inject();
+    }
+  }, []);
 
   return (
     <>
