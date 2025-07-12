@@ -71,9 +71,9 @@ const App = () => {
             const coordsList = event.coords || (event.locations?.map(loc => loc.coords).filter(Boolean) ?? []);
             const formattedDate = formatDate(event.date?.point_in_time);
 
-            const jitteredCoords = coordsList.map(coord => jitterCoords(coord, 0.0015));
+            // const jitteredCoords = coordsList.map(coord => jitterCoords(coord, 0.0015));
             
-            return jitteredCoords.map((coord) => ({
+            return coordsList.map((coord) => ({
               type: 'Feature',
               properties: {
                 title: event.label || event.title || 'Untitled',
