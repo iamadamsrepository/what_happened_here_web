@@ -119,13 +119,14 @@ const App = () => {
           cluster: true,
           clusterMaxZoom: 14,
           clusterRadius: 30,
+          clusterMinPoints: 8
         });
 
         map.current.addLayer({
           id: 'clusters',
           type: 'circle',
           source: 'events',
-          filter: ["all", ["has", "point_count"], [">", ["get", "point_count"], 6]],
+          filter: ["all", ["has", "point_count"]],
           paint: {
             'circle-color': '#51bbd6',
             'circle-radius': ['step', ['get', 'point_count'], 15, 100, 25, 750, 35],
@@ -138,7 +139,7 @@ const App = () => {
           id: 'cluster-count',
           type: 'symbol',
           source: 'events',
-          filter: ["all", ["has", "point_count"], [">", ["get", "point_count"], 6]],
+          filter: ["all", ["has", "point_count"]],
           layout: {
             'text-field': '{point_count_abbreviated}',
             'text-size': 12,
@@ -159,38 +160,100 @@ const App = () => {
         });
 
         map.current.on('click', 'unclustered-point', async (e) => {
-          const coordinates = e.features[0].geometry.coordinates.slice();
-          const { title, description, date } = e.features[0].properties;
+          const features = e.features;
+          const coordinates = features[0].geometry.coordinates.slice();
+        
+          let currentIndex = 0;
+          const popup = new maplibregl.Popup().setLngLat(coordinates).addTo(map.current);
+        
+          const renderFeature = async (index) => {
+            const props = features[index].properties;
+            const title = props.title || 'Untitled';
+            const date = props.date || 'Unknown';
+            const description = props.description;
+        
+            let content = `<div style="max-width: 300px;">`;
 
-          if (!description) {
-            new maplibregl.Popup()
-              .setLngLat(coordinates)
-              .setHTML(`<h3>${title}</h3><p>${date}</p><p>No Wikipedia link.</p>`)
-              .addTo(map.current);
-            return;
-          }
-
-          try {
-            const preview = await fetchWikipediaSummary(description);
-            new maplibregl.Popup()
-              .setLngLat(coordinates)
-              .setHTML(`
-                <h3>${title}</h3>
-                <p>${date}</p>
-                <p><strong>${preview.title}</strong></p>
-                ${preview.thumbnail ? `<img src="${preview.thumbnail.source}" alt="${preview.title}" style="max-width:100%;height:auto;"/>` : ''}
-                <p>${preview.extract}</p>
-                <a href="${preview.content_urls.desktop.page}" target="_blank" rel="noopener noreferrer">Read more on Wikipedia</a>
-              `)
-              .addTo(map.current);
-          } catch (err) {
-            console.error('Preview fetch error:', err);
-            new maplibregl.Popup()
-              .setLngLat(coordinates)
-              .setHTML(`<h3>${title}</h3><p>${date}</p><a href="${description}" target="_blank">View on Wikipedia</a> (preview unavailable)`)
-              .addTo(map.current);
-          }
+            // Add navigation buttons if multiple
+            if (features.length > 1) {
+              content += `
+                <div style="margin-top:10px; display:flex; justify-content:space-between; font-size:14px;">
+                  <button id="prev-evt" ${index === 0 ? 'disabled' : ''}>←</button>
+                  <span>${index + 1} of ${features.length}</span>
+                  <button id="next-evt" ${index === features.length - 1 ? 'disabled' : ''}>→</button>
+                </div>
+              `;
+            }
+        
+            content += `<h3>${title}</h3><p>${date}</p>`;
+        
+            if (!description) {
+              content += `<p><em>No Wikipedia link</em></p>`;
+            } else {
+              try {
+                const preview = await fetchWikipediaSummary(description);
+                content += `
+                  <p><strong>${preview.title}</strong></p>
+                  ${preview.thumbnail ? `<img src="${preview.thumbnail.source}" alt="${preview.title}" style="max-width:100%;height:auto;" />` : ''}
+                  <p>${preview.extract}</p>
+                  <a href="${preview.content_urls.desktop.page}" target="_blank" rel="noopener noreferrer">Read more on Wikipedia</a>
+                `;
+              } catch (err) {
+                content += `<a href="${description}" target="_blank" rel="noopener noreferrer">View on Wikipedia</a> <em>(preview unavailable)</em>`;
+              }
+            }
+        
+            content += `</div>`;
+            popup.setHTML(content);
+        
+            // Add button event listeners after rendering
+            setTimeout(() => {
+              const prev = document.getElementById('prev-evt');
+              const next = document.getElementById('next-evt');
+              if (prev) prev.onclick = () => renderFeature(currentIndex = Math.max(0, currentIndex - 1));
+              if (next) next.onclick = () => renderFeature(currentIndex = Math.min(features.length - 1, currentIndex + 1));
+            }, 0);
+          };
+        
+          renderFeature(currentIndex);
         });
+        // map.current.on('click', 'unclustered-point', async (e) => {
+        //   const coordinates = e.features[0].geometry.coordinates.slice();
+        //   const { title, description, date } = e.features[0].properties;
+
+        //   if (title === '1950 Sydney to Hobart Yacht Race') {
+        //     console.log(e.features)
+        //   }
+
+        //   if (!description) {
+        //     new maplibregl.Popup()
+        //       .setLngLat(coordinates)
+        //       .setHTML(`<h3>${title}</h3><p>${date}</p><p>No Wikipedia link.</p>`)
+        //       .addTo(map.current);
+        //     return;
+        //   }
+
+        //   try {
+        //     const preview = await fetchWikipediaSummary(description);
+        //     new maplibregl.Popup()
+        //       .setLngLat(coordinates)
+        //       .setHTML(`
+        //         <h3>${title}</h3>
+        //         <p>${date}</p>
+        //         <p><strong>${preview.title}</strong></p>
+        //         ${preview.thumbnail ? `<img src="${preview.thumbnail.source}" alt="${preview.title}" style="max-width:100%;height:auto;"/>` : ''}
+        //         <p>${preview.extract}</p>
+        //         <a href="${preview.content_urls.desktop.page}" target="_blank" rel="noopener noreferrer">Read more on Wikipedia</a>
+        //       `)
+        //       .addTo(map.current);
+        //   } catch (err) {
+        //     console.error('Preview fetch error:', err);
+        //     new maplibregl.Popup()
+        //       .setLngLat(coordinates)
+        //       .setHTML(`<h3>${title}</h3><p>${date}</p><a href="${description}" target="_blank">View on Wikipedia</a> (preview unavailable)`)
+        //       .addTo(map.current);
+        //   }
+        // });
 
         map.current.on('click', 'clusters', (e) => {
           const features = map.current.queryRenderedFeatures(e.point, {
