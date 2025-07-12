@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { Analytics } from "@vercel/analytics/next"
 
 const App = () => {
   const mapContainer = useRef(null);
@@ -315,6 +316,8 @@ const App = () => {
           width: '100%',
         }}
       />
+
+      <Analytics />
     </>
   );
 };
