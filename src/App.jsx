@@ -359,7 +359,7 @@ const App = () => {
             textOverflow: 'ellipsis',
             maxWidth: '100%'
           }}>
-            Historical Event Map — Explore the past by location
+            What Happened Here? - A Historical Event Map
           </span>
         </div>
         <button
